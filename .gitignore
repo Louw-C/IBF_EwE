@@ -1,0 +1,12 @@
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+.claude/
+Data/raw/
+Spatial/
+Literature/
+Writing/
+Admin/
+Archive/
