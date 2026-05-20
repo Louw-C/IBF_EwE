@@ -5,8 +5,11 @@
 .DS_Store
 .claude/
 Data/raw/
+Data/processed/
+Figures/
 Spatial/
 Literature/
 Writing/
 Admin/
 Archive/
+.positai
