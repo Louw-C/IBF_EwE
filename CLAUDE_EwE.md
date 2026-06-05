@@ -110,7 +110,9 @@ For each gear type, summarise which catch groups are recorded and in what propor
 - What does a typical "gill net" landing look like?
 - What does a typical "long line" landing look like?
 - Are there gear types that consistently catch the same narrow set of species (suggesting a defined target fishery), and gear types that catch a wide mix (suggesting opportunistic or multi-target fishing)?
-- Output: stacked bar chart or heatmap of catch composition (%) by gear type; one chart per municipality to show regional variation
+- What fish types are caught by hand lines and long line?
+- Do small pelagic catches vary across time/seasons?
+- Output: heatmap of catch composition (%) by gear type; one chart per municipality to show regional variation
 
 **Key question for PESKAS team:** What exactly does "hand line" mean in the field recording protocol — does it include sabiki rigs, feather jigs, or lures, or only baited single hooks? This matters because small planktivorous fish (sardines, mackerel scad) cannot take baited hooks, so their appearance under "hand line" suggests either a different gear is being used or catch is being mis-attributed to gear.
 
@@ -334,7 +336,7 @@ Scripts to develop (in approximate order):
 | `Alex_Survey_Groups.R` | Aggregate Alex's survey data into functional groups; calculate group proportions across full survey |
 | `Primary_Production.R` | Process NASA Ocean Color Chl-a data; estimate NPP for model area; derive phytoplankton and zooplankton biomass |
 | `Biomass_Estimates.R` | Compile biomass estimates per functional group from surveys, literature, and reference models |
-| `EwE_Input_Builder.R` | Assemble final Ecopath input tables (B, P/B, Q/B, EE, diet matrix, catch) |
+| `EwE_Input_Builder.R` | Assemble final Ecopath input tables (B, P/B, Q/B, EE, diet matrix, catch) — the diet matrix (A_ij) and trophic flow outputs from this script feed directly into the network resilience analysis (βeff calculation) in `IBF_South_Coast/Code/Resilience_Analysis/` |
 
 Existing scripts:
 - `Ecobase.R` / `Ecobase_Code.R` — Ecobase reference model queries
