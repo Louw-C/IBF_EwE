@@ -2,6 +2,18 @@
 
 Working plan for data exploration, quality checking, and metier identification using PESKAS fisheries monitoring data (2018–March 2025). All analysis is in support of the IBF_EwE model fleet structure and functional group development.
 
+## Status (last updated 2026-06-19)
+
+| Phase | Script | Status |
+|---|---|---|
+| Phase 1 — Sampling effort | `PESKAS_1_Sampling_Effort.R` | COMPLETE |
+| Phase 2 — Gear × taxa | `PESKAS_2_Gear_Taxa.R` | COMPLETE |
+| Phase 2c — Taxon coverage cross-check | (in Script 2) | COMPLETE |
+| Phase 3 — Habitat × gear × taxa | `PESKAS_3_Habitat_Gear_Taxa.R` | **NEXT** |
+| Phase 4 — Spatial/temporal | — | Deferred — resolve team questions first |
+
+Team questions (Section 7 of Script 2) are ready for discussion with Lore before or during Phase 3.
+
 ---
 
 ## Data files
