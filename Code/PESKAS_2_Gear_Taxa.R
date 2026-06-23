@@ -196,6 +196,8 @@ p2a <- p_ll + p_gn + p_hl +
     )
   )
 
+p2a 
+
 ggsave("Figures/PESKAS_2a_gear_taxon_overall.png",
        p2a, width = 10, height = 12, dpi = 300)
 cat("Saved: Figures/PESKAS_2a_gear_taxon_overall.png\n")
@@ -309,6 +311,8 @@ p2b_out <- top_row / p2b +
       plot.subtitle = element_text(size = 9, colour = "grey40")
     )
   )
+
+p2b_out
 
 ggsave("Figures/PESKAS_2b_gear_taxon_by_municipality.png",
        p2b_out, width = 11, height = 17, dpi = 300)
