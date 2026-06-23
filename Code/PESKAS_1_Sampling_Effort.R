@@ -127,6 +127,8 @@ p1a_month <- ggplot(landings_month_full,
         plot.title    = element_text(face = "bold"),
         plot.subtitle = element_text(size = 9, colour = "grey40"))
 
+p1a_month
+
 ggsave("Figures/PESKAS_1a_landing_events_monthly_heatmap.png",
        p1a_month, width = 10, height = 7, dpi = 300)
 cat("Saved: Figures/PESKAS_1a_landing_events_monthly_heatmap.png\n")
@@ -187,6 +189,8 @@ p1b <- ggplot(gear_landings,
         plot.subtitle  = element_text(size = 9, colour = "grey40"),
         legend.position = "bottom")
 
+p1b
+
 ggsave("Figures/PESKAS_1b_gear_coverage.png",
        p1b, width = 9, height = 6, dpi = 300)
 cat("Saved: Figures/PESKAS_1b_gear_coverage.png\n")
@@ -243,6 +247,8 @@ p1c_hab <- ggplot(habitat_landings,
         plot.title      = element_text(face = "bold"),
         plot.subtitle   = element_text(size = 9, colour = "grey40"),
         legend.position = "bottom")
+
+p1c_hab 
 
 ggsave("Figures/PESKAS_1c_habitat_coverage.png",
        p1c_hab, width = 9, height = 6, dpi = 300)
@@ -314,6 +320,8 @@ p1d <- ggplot(mean_rows_full,
         axis.text.y   = element_text(face = "bold"),
         plot.title    = element_text(face = "bold"),
         plot.subtitle = element_text(size = 9, colour = "grey40"))
+
+p1d
 
 ggsave("Figures/PESKAS_1d_rows_per_landing.png",
        p1d, width = 8, height = 3.8, dpi = 300)
