@@ -70,6 +70,40 @@ cat("Unique landings with any catch:", n_distinct(catch_base$landing_id), "\n")
 cat("Unique taxa caught:", n_distinct(catch_base$catch_taxon), "\n")
 # Expected: 44
 
+# Remove gears with fewer than 20 landing events (all landings included, catch = 0
+# and catch > 0) — too sparse to show general catch patterns and may reflect
+# ambiguous or one-off recording.
+# This filter is applied to ALL analyses in this script. Figures show only the
+# retained dataset (same filtered sc and catch_base used throughout).
+gear_counts_all <- sc |> distinct(landing_id, gear) |> count(gear, name = "n_landings")
+rare_gears      <- gear_counts_all |> filter(n_landings < 20) |> pull(gear)
+if (length(rare_gears) > 0) {
+  n_total     <- n_distinct(sc$landing_id)
+  muni_totals <- sc |> distinct(landing_id, municipality) |> count(municipality, name = "n_muni_total")
+  removed     <- sc |> filter(gear %in% rare_gears) |> distinct(landing_id, municipality)
+  n_removed   <- n_distinct(removed$landing_id)
+
+  cat("\nGears removed (< 20 landing events):\n")
+  gear_counts_all |>
+    filter(n_landings < 20) |>
+    mutate(pct_of_total = round(n_landings / n_total * 100, 2)) |>
+    print()
+
+  cat(sprintf("\nTotal removed: %d landings (%.2f%% of %d south coast landings)\n",
+              n_removed, n_removed / n_total * 100, n_total))
+
+  cat("\nRemoved landings by municipality:\n")
+  removed |>
+    count(municipality, name = "n_removed") |>
+    left_join(muni_totals, by = "municipality") |>
+    mutate(pct_of_muni = round(n_removed / n_muni_total * 100, 2)) |>
+    print()
+
+  sc         <- sc         |> filter(!gear %in% rare_gears)
+  catch_base <- catch_base |> filter(!gear %in% rare_gears)
+  cat("South coast landings retained:", n_distinct(sc$landing_id), "\n\n")
+}
+
 # Denominators for percentages — from sc (all landings, including zero-catch trips)
 n_gear_total <- sc |>
   distinct(landing_id, gear) |>

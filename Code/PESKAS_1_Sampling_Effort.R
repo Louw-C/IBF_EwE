@@ -2,15 +2,19 @@
 # Phase 1 — Sampling effort investigation, south coast Timor-Leste
 #
 # Assesses data coverage before any catch or composition analysis:
-#   1a. Unique landing events by municipality × year
+#   1a. Unique landing events by municipality × year × month
 #   1b. Gear coverage by municipality × year
-#   1c. Rows-per-landing distribution — flags protocol changes
+#   1c. Habitat coverage by municipality × year
+#   1d–1f. Zero-catch rate by municipality/gear/habitat
 #
 # Input:  Data/raw/Fisheries/PESKAS_timor_cpue_2018_mar2025.csv  (READ ONLY)
 #         Data/raw/Fisheries/Peskas groups_From Lore.csv          (READ ONLY)
-# Output: Figures/PESKAS_1a_landing_events_heatmap.png
+# Output: Figures/PESKAS_1a_landing_events_monthly_heatmap.png
 #         Figures/PESKAS_1b_gear_coverage.png
-#         Figures/PESKAS_1c_rows_per_landing.png
+#         Figures/PESKAS_1c_habitat_coverage.png
+#         Figures/PESKAS_1e_zero_catch_year.png
+#         Figures/PESKAS_1f_zero_catch_gear.png
+#         Figures/PESKAS_1g_zero_catch_habitat.png
 # -----------------------------------------------------------------------
 
 
@@ -56,6 +60,49 @@ sc <- cpue |>
 cat("\nSouth coast rows:", nrow(sc), "\n")             # Expected: ~58,127
 cat("South coast unique landings:", n_distinct(sc$landing_id), "\n")  # Expected: 12,512
 cat("Year range:", min(sc$year), "–", max(sc$year), "\n")
+
+# Remove gears and habitats with fewer than 20 landing events (all landings
+# included, catch = 0 and catch > 0) — consistent with Scripts 2 and 3.
+# This filter is applied to ALL analyses in this script, including the zero-catch
+# exploration (Sections 15–18). Figures show only the retained dataset.
+gear_counts_all <- sc |> distinct(landing_id, gear)    |> count(gear,    name = "n_landings")
+hab_counts_all  <- sc |> distinct(landing_id, habitat) |> count(habitat, name = "n_landings")
+rare_gears <- gear_counts_all |> filter(n_landings < 20) |> pull(gear)
+rare_habs  <- hab_counts_all  |> filter(n_landings < 20) |> pull(habitat)
+
+if (length(rare_gears) > 0 || length(rare_habs) > 0) {
+  n_total     <- n_distinct(sc$landing_id)
+  muni_totals <- sc |> distinct(landing_id, municipality) |> count(municipality, name = "n_muni_total")
+  removed     <- sc |>
+    filter(gear %in% rare_gears | habitat %in% rare_habs) |>
+    distinct(landing_id, municipality)
+  n_removed   <- n_distinct(removed$landing_id)
+
+  cat("\nGears removed (< 20 landing events):\n")
+  gear_counts_all |>
+    filter(n_landings < 20) |>
+    mutate(pct_of_total = round(n_landings / n_total * 100, 2)) |>
+    print()
+
+  cat("\nHabitats removed (< 20 landing events):\n")
+  hab_counts_all |>
+    filter(n_landings < 20) |>
+    mutate(pct_of_total = round(n_landings / n_total * 100, 2)) |>
+    print()
+
+  cat(sprintf("\nTotal removed: %d landings (%.2f%% of %d south coast landings)\n",
+              n_removed, n_removed / n_total * 100, n_total))
+
+  cat("\nRemoved landings by municipality:\n")
+  removed |>
+    count(municipality, name = "n_removed") |>
+    left_join(muni_totals, by = "municipality") |>
+    mutate(pct_of_muni = round(n_removed / n_muni_total * 100, 2)) |>
+    print()
+
+  sc <- sc |> filter(!gear %in% rare_gears, !habitat %in% rare_habs)
+  cat("South coast landings retained:", n_distinct(sc$landing_id), "\n\n")
+}
 
 
 # ---- 4. Step 1a: Unique landing events by municipality × year × month ----
@@ -255,78 +302,6 @@ ggsave("Figures/PESKAS_1c_habitat_coverage.png",
 cat("Saved: Figures/PESKAS_1c_habitat_coverage.png\n")
 
 
-# ---- 7. Step 1d: Rows-per-landing distribution ----
-# The CPUE file is long format: each landing generates multiple rows (one per
-# taxon slot offered to the enumerator, including zeros). Typical range is ~10–35.
-# A spike in rows-per-landing signals that the taxon slot set was expanded —
-# a protocol change that inflates row counts without adding new landing events.
-# Flag: landings with > 50 rows; summarise by municipality × year.
-
-rows_per_landing <- sc |>
-  count(landing_id, municipality, year, name = "n_rows")
-
-cat("\n--- 1d: Rows per landing ---\n")
-cat("Min:", min(rows_per_landing$n_rows), "\n")
-cat("Median:", median(rows_per_landing$n_rows), "\n")
-cat("Mean:", round(mean(rows_per_landing$n_rows), 1), "\n")
-cat("Max:", max(rows_per_landing$n_rows), "\n")
-cat("Landings > 50 rows:", sum(rows_per_landing$n_rows > 50), "\n")
-cat("% landings > 50 rows:",
-    round(mean(rows_per_landing$n_rows > 50) * 100, 1), "%\n")
-
-cat("\nFlagged landings (> 50 rows) by municipality × year:\n")
-rows_per_landing |>
-  filter(n_rows > 50) |>
-  count(municipality, year, name = "n_flagged") |>
-  arrange(municipality, year) |>
-  print()
-# If Covalima 2024 has most flags, this confirms the row-count anomaly
-# (646 unique landings → 21,759 rows ≈ 34 rows/landing vs typical ~10)
-
-# Heatmap: mean rows per landing by municipality × year
-# A jump in mean rows signals taxon slot expansion (protocol change), not more fishing.
-# More direct than a histogram for detecting when and where the change occurred.
-
-mean_rows <- rows_per_landing |>
-  group_by(municipality, year) |>
-  summarise(mean_rows = round(mean(n_rows), 1), .groups = "drop")
-
-all_cells <- expand_grid(municipality = sc_munis, year = 2018:2025)
-
-mean_rows_full <- all_cells |>
-  left_join(mean_rows, by = c("municipality", "year")) |>
-  mutate(
-    fill_value  = ifelse(is.na(mean_rows), NA_real_, mean_rows),
-    label       = ifelse(is.na(mean_rows), "0", as.character(mean_rows)),
-    text_colour = ifelse(!is.na(mean_rows) & mean_rows > 20, "white", "grey20")
-  )
-
-p1d <- ggplot(mean_rows_full,
-              aes(x = factor(year), y = municipality, fill = fill_value)) +
-  geom_tile(colour = "white", linewidth = 0.7) +
-  geom_text(aes(label = label, colour = text_colour),
-            size = 3.3, fontface = "bold") +
-  scale_fill_gradient(low = "#e8f5e9", high = "#1b5e20",
-                      na.value = "grey85",
-                      name = "Mean rows\nper landing") +
-  scale_colour_identity() +
-  labs(
-    title    = "Step 1d: Mean rows per landing by municipality and year",
-    subtitle = "A sudden increase indicates taxon slot expansion in the recording system, not more fishing effort.",
-    x        = "Year", y = NULL
-  ) +
-  theme_minimal(base_size = 11) +
-  theme(panel.grid    = element_blank(),
-        axis.text.y   = element_text(face = "bold"),
-        plot.title    = element_text(face = "bold"),
-        plot.subtitle = element_text(size = 9, colour = "grey40"))
-
-p1d
-
-ggsave("Figures/PESKAS_1d_rows_per_landing.png",
-       p1d, width = 8, height = 3.8, dpi = 300)
-cat("Saved: Figures/PESKAS_1d_rows_per_landing.png\n")
-
 
 # ---- 8. Phase 1 data quality flags — printed summary ----
 # Known gaps and anomalies confirmed from data structure.
@@ -338,29 +313,25 @@ cov24 <- landings_full |> filter(municipality == "Covalima", year == 2024) |> pu
 viq18 <- landings_full |> filter(municipality == "Viqueque",  year == 2018) |> pull(n_landings)
 
 cat("\n========== PHASE 1 DATA QUALITY FLAGS ==========\n")
-cat("1. Manufahi 2022: 0 unique landings — complete monitoring gap.\n",
-    "   Question: staff change, funding gap, or data loss?\n\n")
-cat("2. Ainaro: absent from 2024 onward; declining from 2021 (93 landings) to 2023 (23).\n",
-    "   Question: were landing sites dropped from the monitoring frame?\n\n")
+cat("1. Manufahi 2022: 0 unique landings — complete monitoring gap across all 12 months.\n\n")
+cat("2. Ainaro: absent from 2024 onward; declining from 2021 (93 landings) to 2023 (23).\n\n")
 cat("3. Viqueque 2018:", viq18, "landings — early ramp-up; treat as low confidence.\n\n")
-cat("4. Covalima anomaly: 2021 =", cov21, "→ 2023 =", cov23, "→ 2024 =", cov24, "landings.\n",
-    "   Question: did monitored landing sites change between these years?\n\n")
-cat("5. Covalima 2024 row inflation: 646 unique landings → 21,759 rows (~34 rows/landing).\n",
-    "   Typical for other years: ~10–15 rows/landing.\n",
-    "   Question: was the taxon slot list expanded in the 2024 data entry system?\n\n")
-cat("6. Viqueque 2018 gear flag: hand line count in 2018 may include trips that should\n",
-    "   be long line — first-year recording inconsistency.\n\n")
-cat("7. Manufahi hand line vs long line: no long line recorded across any year despite\n",
-    "   the gear being common elsewhere on the south coast. Manufahi enumerators may\n",
-    "   record attended multi-hook bottom lines as hand line. Field verification needed.\n\n")
-cat("8. Viqueque beach seine: small number of beach seine landings — confirm with\n",
-    "   enumerators whether these are beach seines or gill nets set near the shoreline.\n\n")
-cat("9. Viqueque FAD 2018: check whether a FAD was actually deployed in Viqueque in 2018.\n",
-    "   If not, FAD landings that year are misclassified habitat records.\n\n")
-cat("10. Manufahi Reef: field knowledge suggests fishing does not always occur on reef.\n",
-    "    Reef may be used as a default habitat label rather than the actual fishing ground.\n\n")
-cat("11. Ainaro Reef vs Deep: suspected reclassification between these two categories\n",
-    "    across years. Boundary between reef and deep is undefined in the PESKAS protocol.\n")
+cat("4. Covalima: 2021 =", cov21, "→ 2023 =", cov23, "→ 2024 =", cov24,
+    "landings — unexplained swings.\n\n")
+cat("5. Viqueque 2018 gear: 248 hand line landings, 0 long line. From 2019 onward,\n",
+    "   near-zero hand line and long line dominant — probable first-year recording\n",
+    "   inconsistency.\n\n")
+cat("6. Manufahi gear: no long line recorded across any year despite it being common\n",
+    "   elsewhere on the south coast. Enumerators may record multi-hook set lines\n",
+    "   as hand line.\n\n")
+cat("7. Viqueque beach seine: small number of landings — may be gill nets set near\n",
+    "   the shoreline.\n\n")
+cat("8. Viqueque FAD 2018: FAD habitat accounts for 62.5%% of Viqueque 2018 landings,\n",
+    "   then near-zero from 2019 onward.\n\n")
+cat("9. Manufahi Reef: field knowledge suggests reef is overused as a default\n",
+    "   habitat label.\n\n")
+cat("10. Ainaro: ~99%% Reef (2019) → 100%% Deep (2021 onward) — abrupt switch with\n",
+    "    no intermediate transition.\n")
 cat("=================================================\n")
 
 
@@ -451,23 +422,23 @@ cat("catch_name_en NA or empty despite catch > 0:",
 
 
 # ---- 12. n_fishers = 0 → Inf CPUE ----
-# 21 landing events have catch > 0 but n_fishers = 0 — data entry omission, not
-# a true zero-crew trip. These produce Inf in both CPUE columns (division by zero).
-# They are correctly counted in landing event totals (Sections 4–6) but must be
-# excluded from any effort-standardised (CPUE-based) analysis in Phase 2.
+# Some landing events have n_fishers = 0 — data entry omission, not a true zero-crew
+# trip. These produce Inf in both CPUE columns (division by zero).
+# Note: metier identification (Phases 2–3) uses raw catch weight and catch frequencies,
+# not CPUE. All affected landings are retained for catch-based analyses. Exclude only
+# if CPUE-based effort standardisation is needed in future.
 
 cat("\n=== 12. n_fishers = 0 → Inf CPUE ===\n")
 zero_fisher <- sc |> filter(n_fishers == 0)
 zero_fisher_catch <- zero_fisher |> filter(catch > 0)
 
-cat("Total rows with n_fishers = 0:", nrow(zero_fisher), "\n")
-cat("  Of these, rows with catch > 0:", nrow(zero_fisher_catch),
-    "(Inf CPUE)\n")
-cat("  Unique landing_ids affected:", n_distinct(zero_fisher_catch$landing_id), "\n")
+cat("Unique landing_ids with n_fishers = 0 (all):", n_distinct(zero_fisher$landing_id), "\n")
+cat("  Of these, with real catch > 0 (produce Inf CPUE):",
+    n_distinct(zero_fisher_catch$landing_id), "\n")
 cat("  Proportion of south coast landings:",
     round(n_distinct(zero_fisher_catch$landing_id) / n_distinct(sc$landing_id) * 100, 2), "%\n")
 
-cat("\nAffected landings by municipality and year:\n")
+cat("\nAffected landings (catch > 0) by municipality and year:\n")
 zero_fisher_catch |>
   mutate(year = as.integer(format(landing_date, "%Y"))) |>
   distinct(landing_id, municipality, year, gear) |>
@@ -475,8 +446,9 @@ zero_fisher_catch |>
   arrange(municipality, year) |>
   print()
 
-cat("Action: exclude these 21 landing_ids from all CPUE calculations in Phase 2.\n")
-cat("Their catch values are real and may be included in catch composition analysis.\n")
+cat("Note: metier identification uses raw catch weight and catch frequencies, not CPUE.\n")
+cat("All", n_distinct(zero_fisher$landing_id), "landing events are retained for catch-based\n")
+cat("analyses in Phases 2–3. Exclude from CPUE-based analyses only.\n")
 
 
 # ---- 13. tot_catch vs sum(catch) per landing ----
@@ -536,4 +508,263 @@ sc |>
 cat("Action: in Phase 2, always aggregate catch with sum(), never first() or slice(1).\n")
 cat("Re-compute cpue_fish_group as sum(catch) / n_fishers / trip_length per\n")
 cat("taxon per landing before any effort-standardised taxon analysis.\n")
+
+
+# ---- 15. Steps 1e–1g: Zero-catch rate analysis ----
+# A zero-catch landing is any landing_id where tot_catch = 0.
+# tot_catch is landing-level and confirmed consistent in Section 13.
+# Zero-catch landings are real recorded events — a fishing trip occurred but
+# returned nothing. All landing events (catch = 0 and catch > 0) are counted,
+# consistent with the < 20 threshold filter in Section 3b.
+
+landings_flag <- sc |>
+  distinct(landing_id, municipality, year, gear, habitat, tot_catch) |>
+  mutate(zero_catch = tot_catch == 0)
+
+cat("\n=== 15. Zero-catch rate summary ===\n")
+cat("Total retained landing events:", nrow(landings_flag), "\n")
+cat("Zero-catch landings:", sum(landings_flag$zero_catch), "\n")
+cat("Overall zero-catch rate:", round(mean(landings_flag$zero_catch) * 100, 1), "%\n\n")
+
+cat("Zero-catch rate by municipality:\n")
+landings_flag |>
+  group_by(municipality) |>
+  summarise(n_total = n(), n_zero = sum(zero_catch),
+            pct_zero = round(n_zero / n_total * 100, 1), .groups = "drop") |>
+  print()
+
+cat("\nZero-catch rate by gear:\n")
+landings_flag |>
+  group_by(gear) |>
+  summarise(n_total = n(), n_zero = sum(zero_catch),
+            pct_zero = round(n_zero / n_total * 100, 1), .groups = "drop") |>
+  arrange(desc(n_total)) |>
+  print()
+
+cat("\nZero-catch rate by habitat:\n")
+landings_flag |>
+  group_by(habitat) |>
+  summarise(n_total = n(), n_zero = sum(zero_catch),
+            pct_zero = round(n_zero / n_total * 100, 1), .groups = "drop") |>
+  arrange(desc(n_total)) |>
+  print()
+
+
+# ---- 16. Step 1e figure: Zero-catch rate by municipality, year, and month ----
+# Layout mirrors Fig 1a: faceted by municipality (2×2), month on x, year on y.
+# Orange-red gradient: higher % = more zero-catch events; grey = no landings.
+# Uses month_labels defined in Section 4.
+
+zero_month <- sc |>
+  mutate(month = as.integer(format(as.Date(landing_date), "%m"))) |>
+  distinct(landing_id, municipality, year, month, tot_catch) |>
+  mutate(zero_catch = tot_catch == 0) |>
+  group_by(municipality, year, month) |>
+  summarise(n_total = n(), n_zero = sum(zero_catch),
+            pct = round(n_zero / n_total * 100, 1), .groups = "drop")
+
+all_month_cells_zc <- expand_grid(
+  municipality = sc_munis,
+  year         = 2018:2025,
+  month        = 1:12
+)
+
+zero_month_full <- all_month_cells_zc |>
+  left_join(zero_month, by = c("municipality", "year", "month")) |>
+  mutate(
+    fill_val = ifelse(is.na(n_total), NA_real_, pct),
+    label    = case_when(is.na(n_total) ~ "", TRUE ~ paste0(n_zero, "/", pct, "%")),
+    text_col = ifelse(!is.na(pct) & pct > 50, "white", "grey20")
+  )
+
+p1e <- ggplot(zero_month_full,
+              aes(x = factor(month, labels = month_labels),
+                  y = factor(year, levels = rev(2018:2025)),
+                  fill = fill_val)) +
+  geom_tile(colour = "white", linewidth = 0.4) +
+  geom_text(aes(label = label, colour = text_col), size = 2.0, fontface = "bold") +
+  facet_wrap(~municipality, ncol = 2) +
+  scale_fill_gradient(low = "#fff3e0", high = "#e65100",
+                      na.value = "grey85", limits = c(0, 100),
+                      name = "% zero\ncatch") +
+  scale_colour_identity() +
+  labs(
+    title    = "Step 1e: Zero-catch rate by municipality, year, and month",
+    subtitle = "Numbers = n_zero / %. Grey = no landings recorded.",
+    x = NULL, y = NULL
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid    = element_blank(),
+    axis.text.x   = element_text(size = 7),
+    strip.text    = element_text(face = "bold"),
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 9, colour = "grey40")
+  )
+
+p1e
+
+ggsave("Figures/PESKAS_1e_zero_catch_year.png",
+       p1e, width = 10, height = 7, dpi = 300)
+cat("Saved: Figures/PESKAS_1e_zero_catch_year.png\n")
+
+
+# ---- 17. Step 1f figure: Zero-catch rate by gear × year, faceted by municipality ----
+# Faceted by municipality (2×2); x = year, y = gear (most frequent first).
+# Shows whether gear-specific zero-catch rates change over time.
+# Grey = gear not used in that municipality × year.
+
+gear_order_zc <- landings_flag |>
+  count(gear, sort = TRUE) |>
+  pull(gear)
+
+zero_gear_year <- sc |>
+  distinct(landing_id, municipality, year, gear, tot_catch) |>
+  mutate(zero_catch = tot_catch == 0) |>
+  group_by(gear, municipality, year) |>
+  summarise(n_total = n(), n_zero = sum(zero_catch),
+            pct = round(n_zero / n_total * 100, 1), .groups = "drop")
+
+gear_year_grid <- expand_grid(
+  gear = gear_order_zc, municipality = sc_munis, year = sort(unique(sc$year))
+) |>
+  left_join(zero_gear_year, by = c("gear", "municipality", "year")) |>
+  mutate(
+    fill_val = ifelse(is.na(n_total), NA_real_, pct),
+    label    = case_when(
+      is.na(n_total) ~ "",
+      TRUE           ~ paste0(n_zero, "/", pct, "%")
+    ),
+    text_col = ifelse(!is.na(pct) & pct > 50, "white", "grey20")
+  )
+
+p1f <- ggplot(gear_year_grid,
+              aes(x = factor(year),
+                  y = factor(gear, levels = rev(gear_order_zc)),
+                  fill = fill_val)) +
+  geom_tile(colour = "white", linewidth = 0.4) +
+  geom_text(aes(label = label, colour = text_col), size = 2.0, fontface = "bold") +
+  facet_wrap(~municipality, ncol = 2) +
+  scale_fill_gradient(low = "#fff3e0", high = "#e65100",
+                      na.value = "grey85", limits = c(0, 100),
+                      name = "% zero\ncatch") +
+  scale_colour_identity() +
+  scale_y_discrete(labels = str_to_title) +
+  labs(
+    title    = "Step 1f: Zero-catch rate by gear type, year, and municipality",
+    subtitle = "Numbers = n_zero / %. Grey = gear not recorded in that municipality × year.",
+    x = "Year", y = NULL
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid    = element_blank(),
+    axis.text.x   = element_text(angle = 45, hjust = 1, size = 7),
+    axis.text.y   = element_text(size = 8),
+    strip.text    = element_text(face = "bold"),
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 9, colour = "grey40"),
+    legend.position = "right"
+  )
+
+p1f
+
+ggsave("Figures/PESKAS_1f_zero_catch_gear.png",
+       p1f, width = 10, height = 6, dpi = 300)
+cat("Saved: Figures/PESKAS_1f_zero_catch_gear.png\n")
+
+
+# ---- 18. Step 1g figure: Zero-catch rate by habitat × year, faceted by municipality ----
+# Faceted by municipality (2×2); x = year, y = habitat (most frequent first).
+# Grey = habitat not recorded in that municipality × year.
+
+hab_order_zc <- landings_flag |>
+  count(habitat, sort = TRUE) |>
+  pull(habitat)
+
+zero_hab_year <- sc |>
+  distinct(landing_id, municipality, year, habitat, tot_catch) |>
+  mutate(zero_catch = tot_catch == 0) |>
+  group_by(habitat, municipality, year) |>
+  summarise(n_total = n(), n_zero = sum(zero_catch),
+            pct = round(n_zero / n_total * 100, 1), .groups = "drop")
+
+hab_year_grid <- expand_grid(
+  habitat = hab_order_zc, municipality = sc_munis, year = sort(unique(sc$year))
+) |>
+  left_join(zero_hab_year, by = c("habitat", "municipality", "year")) |>
+  mutate(
+    fill_val = ifelse(is.na(n_total), NA_real_, pct),
+    label    = case_when(
+      is.na(n_total) ~ "",
+      TRUE           ~ paste0(n_zero, "/", pct, "%")
+    ),
+    text_col = ifelse(!is.na(pct) & pct > 50, "white", "grey20")
+  )
+
+p1g <- ggplot(hab_year_grid,
+              aes(x = factor(year),
+                  y = factor(habitat, levels = rev(hab_order_zc)),
+                  fill = fill_val)) +
+  geom_tile(colour = "white", linewidth = 0.4) +
+  geom_text(aes(label = label, colour = text_col), size = 2.0, fontface = "bold") +
+  facet_wrap(~municipality, ncol = 2) +
+  scale_fill_gradient(low = "#fff3e0", high = "#e65100",
+                      na.value = "grey85", limits = c(0, 100),
+                      name = "% zero\ncatch") +
+  scale_colour_identity() +
+  labs(
+    title    = "Step 1g: Zero-catch rate by habitat type, year, and municipality",
+    subtitle = "Numbers = n_zero / %. Grey = habitat not recorded in that municipality × year.",
+    x = "Year", y = NULL
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid    = element_blank(),
+    axis.text.x   = element_text(angle = 45, hjust = 1, size = 7),
+    axis.text.y   = element_text(size = 8),
+    strip.text    = element_text(face = "bold"),
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 9, colour = "grey40"),
+    legend.position = "right"
+  )
+
+p1g
+
+ggsave("Figures/PESKAS_1g_zero_catch_habitat.png",
+       p1g, width = 10, height = 6, dpi = 300)
+cat("Saved: Figures/PESKAS_1g_zero_catch_habitat.png\n")
+
+
+# ---- 19. Questions for the PESKAS team (Phase 1) ----
+# Based on monitoring coverage (Sections 4–6) and gear flags (Section 8).
+# Additional gear questions (sabiki rigs, gear definitions) are in Script 2.
+# Habitat questions are in Script 3.
+
+cat("\n========== QUESTIONS FOR THE PESKAS TEAM — PHASE 1 ==========\n\n")
+
+cat("--- A. Monitoring coverage ---\n\n")
+cat("Q1. Manufahi 2022 has zero recorded landings across all months. Was this a\n",
+    "    monitoring gap (staff change, funding interruption) or data loss?\n\n")
+cat("Q2. Ainaro is absent from 2024 and has been declining since 2021\n",
+    "    (136 → 93 → 23 landings). Were landing sites dropped from the monitoring\n",
+    "    frame, or did monitoring stop altogether?\n\n")
+cat("Q3. Covalima shows unexplained swings in landing counts: 2,024 (2021) → 272 (2023)\n",
+    "    → 646 (2024). Did the set of monitored landing sites change between these years,\n",
+    "    or is this an actual change in the number of landings?\n\n")
+
+cat("--- B. Gear classification ---\n\n")
+cat("Q4. Given the monitoring gaps and ramp-up periods identified above, which years\n",
+    "    and municipalities do you consider to have sufficiently consistent and\n",
+    "    representative coverage to include in the metier analysis? Are there sampling\n",
+    "    periods that should be excluded or treated with caution?\n\n")
+cat("Q6. Manufahi records zero long line across all years, yet long line dominates\n",
+    "    elsewhere on the south coast. Do Manufahi fishers use set lines at all? If yes,\n",
+    "    how do enumerators decide whether to record a trip as hand line vs long line?\n\n")
+cat("Q7. Viqueque 2018 records 248 hand line landings and zero long line. From 2019\n",
+    "    onward, long line dominates and hand line drops to near-zero. Was this a\n",
+    "    first-year recording inconsistency, or did gear use genuinely change between\n",
+    "    2018 and 2019?\n\n")
+
+cat("=============================================================\n")
+cat("Q5, Q8–Q13 are in Scripts 2 and 3.\n")
 

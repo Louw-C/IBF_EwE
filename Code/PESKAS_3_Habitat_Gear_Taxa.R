@@ -66,6 +66,51 @@ cat("Unique landings with any catch:", n_distinct(catch_base$landing_id), "\n")
 cat("Unique taxa caught:", n_distinct(catch_base$catch_taxon), "\n")
 # Expected: 44
 
+# Remove gears and habitats with fewer than 20 landing events (all landings
+# included, catch = 0 and catch > 0) — too sparse to show general patterns.
+# This filter is applied to ALL analyses in this script. Figures show only the
+# retained dataset (same filtered sc and catch_base used throughout).
+# Factor orders and denominators are recomputed below on the filtered dataset.
+gear_counts_all <- sc |> distinct(landing_id, gear)    |> count(gear,    name = "n_landings")
+hab_counts_all  <- sc |> distinct(landing_id, habitat) |> count(habitat, name = "n_landings")
+rare_gears <- gear_counts_all |> filter(n_landings < 20) |> pull(gear)
+rare_habs  <- hab_counts_all  |> filter(n_landings < 20) |> pull(habitat)
+
+if (length(rare_gears) > 0 || length(rare_habs) > 0) {
+  n_total     <- n_distinct(sc$landing_id)
+  muni_totals <- sc |> distinct(landing_id, municipality) |> count(municipality, name = "n_muni_total")
+  removed     <- sc |>
+    filter(gear %in% rare_gears | habitat %in% rare_habs) |>
+    distinct(landing_id, municipality)
+  n_removed   <- n_distinct(removed$landing_id)
+
+  cat("\nGears removed (< 20 landing events):\n")
+  gear_counts_all |>
+    filter(n_landings < 20) |>
+    mutate(pct_of_total = round(n_landings / n_total * 100, 2)) |>
+    print()
+
+  cat("\nHabitats removed (< 20 landing events):\n")
+  hab_counts_all |>
+    filter(n_landings < 20) |>
+    mutate(pct_of_total = round(n_landings / n_total * 100, 2)) |>
+    print()
+
+  cat(sprintf("\nTotal removed: %d landings (%.2f%% of %d south coast landings)\n",
+              n_removed, n_removed / n_total * 100, n_total))
+
+  cat("\nRemoved landings by municipality:\n")
+  removed |>
+    count(municipality, name = "n_removed") |>
+    left_join(muni_totals, by = "municipality") |>
+    mutate(pct_of_muni = round(n_removed / n_muni_total * 100, 2)) |>
+    print()
+
+  sc         <- sc         |> filter(!gear %in% rare_gears, !habitat %in% rare_habs)
+  catch_base <- catch_base |> filter(!gear %in% rare_gears, !habitat %in% rare_habs)
+  cat("South coast landings retained:", n_distinct(sc$landing_id), "\n\n")
+}
+
 # Taxon order: most frequently caught first (consistent with Script 2 figures)
 taxon_order <- catch_base |>
   count(catch_name_en, sort = TRUE) |>
@@ -224,8 +269,6 @@ priority_flags_3b <- tibble(
     "Reef",  "Reef",
     # Beach — demersal reef fish imply very shallow catch or departure label
     "Beach", "Beach", "Beach",
-    # Mangrove / Seagrass — open-water pelagics in nearshore habitats
-    "Mangrove",                    "Seagrass",
     # Deep — reef-obligate or shallow species; inconsistent with offshore deep water
     "Deep", "Deep", "Deep", "Deep", "Deep",
     "Deep", "Deep", "Deep", "Deep", "Deep"
@@ -233,7 +276,6 @@ priority_flags_3b <- tibble(
   catch_name_en = c(
     "Sardines/pilchards", "Mackerel scad",
     "Snapper/seaperch",   "Grouper", "Emperor",
-    "Tuna/Bonito/Other Mackerel", "Tuna/Bonito/Other Mackerel",
     "Parrotfish", "Surgeonfish", "Wrasse", "Soldierfish", "Fusilier",
     "Moray",      "Crab",        "Octopus", "Shrimp",     "Milkfish"
   ),
@@ -243,8 +285,6 @@ priority_flags_3b <- tibble(
     "Benthic reef fish — Beach catch implies very shallow water or a departure label",
     "Same as above",
     "Same as above",
-    "Open-water pelagic — Mangrove habitat is ecologically implausible",
-    "Open-water pelagic — Seagrass habitat is ecologically implausible",
     "Reef-obligate herbivore — cannot be caught in open offshore deep water",
     "Shallow reef herbivore — same as above",
     "Reef-associated — rarely caught far from reef structure",
@@ -331,7 +371,7 @@ p3b <- hab_taxon_grid |>
   scale_fill_gradient(low = "#f5f5f5", high = "#1a237e",
                       limits = c(0, 100), name = "% of\nlandings") +
   scale_colour_identity() +
-  scale_x_discrete(labels = hab_labels) +
+  scale_x_discrete(labels = hab_labels, position = "top") +
   labs(
     x        = NULL,
     y        = NULL,
@@ -380,9 +420,7 @@ print(gear_hab, n = 80)
 implausible_3c <- tribble(
   ~gear,               ~habitat, ~reason,
   "beach seine",       "Deep",   "Benthic sweep gear — incompatible with deep or offshore water",
-  "long line",         "Beach",  "Offshore bottom-set gear — beach deployment is unusual",
-  "manual collection", "Deep",   "Intertidal gleaning — 'Deep' habitat is ecologically implausible",
-  "spear gun",         "Deep",   "Freediving gear — effective depth range is very limited"
+  "long line",         "Beach",  "Offshore bottom-set gear — beach deployment is unusual"
 )
 
 cat("\nPredefined implausible gear × habitat combinations:\n")
