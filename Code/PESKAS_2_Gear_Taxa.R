@@ -157,6 +157,34 @@ catch_base |>
   select(gear, catch_name_en, n_landings, pct_of_gear) |>
   print(n = 60)
 
+# Long line vs hand line taxon profile comparison
+# Mirrors the Deep vs Reef comparison in Script 3 (Section 6).
+# Metric: pct_of_gear = % of each gear's landings where each taxon was caught.
+# values_fill = 0 for taxa not caught by one gear — true zeros, not missing data.
+# High Pearson r = gears catch the same taxa at similar rates → gear alone is
+# weak as a metier separator. Low r = gears are genuinely distinct.
+cat("\n--- Long line vs hand line taxon profile comparison ---\n")
+cat("High Pearson correlation = profiles are ecologically indistinguishable;\n",
+    "the two gears are not producing distinct catch compositions.\n\n")
+
+ll_hl <- gear_taxon_overall |>
+  filter(gear %in% c("long line", "hand line")) |>
+  select(gear, catch_name_en, pct_of_gear) |>
+  pivot_wider(
+    names_from  = gear,
+    values_from = pct_of_gear,
+    values_fill = 0
+  ) |>
+  rename(long_line = `long line`, hand_line = `hand line`) |>
+  mutate(diff = round(long_line - hand_line, 1)) |>
+  arrange(desc(abs(diff)))
+
+cat("Pearson correlation (Long line vs Hand line taxon frequencies):",
+    round(cor(ll_hl$long_line, ll_hl$hand_line), 3), "\n\n")
+cat("Per-taxon comparison (largest absolute differences first):\n",
+    "  Positive diff = more frequent in long line; negative = more frequent in hand line\n\n")
+print(ll_hl, n = 50)
+
 
 # ---- 5. Step 2a figure: Overall gear × taxon heatmap ----
 # Three separate panels joined with patchwork — one per main gear.
@@ -396,25 +424,17 @@ gear_taxon_overall |>
   select(catch_name_en, n_landings, pct_of_gear) |>
   print()
 
-cat("\n=== PHASE 2 TEAM QUESTIONS ===\n")
-cat("Q1. Can you provide a clear operational description of each gear type recorded\n",
-    "   in PESKAS? Specifically: hook count, line configuration, whether attended or\n",
-    "   unattended, typical depth fished, and target species. This is needed to assess\n",
-    "   whether gear labels in the data reflect meaningfully distinct fishing methods.\n\n")
-cat("Q2. Does the PESKAS recording protocol treat sabiki rigs (multi-hook feather\n",
-    "   jigs) as 'hand line'? Mackerel scad and Sardines/pilchards appear in 48% and\n",
-    "   21% of hand line landings respectively — both are planktivores that cannot\n",
-    "   take a baited hook, pointing to sabiki gear being recorded as hand line.\n\n")
-cat("Q3. For landings where long line is the recorded gear AND Mackerel scad or\n",
-    "   Sardines/pilchards dominate the catch: is this the same trip using a sabiki\n",
-    "   rig alongside the long line set, or a separate trip recorded with the wrong\n",
-    "   gear? These taxa appear in 30% and 24% of long line landings — understanding\n",
-    "   the field situation is essential before interpreting catch composition.\n\n")
-cat("Q4. In Manufahi, hand line accounts for 83% of landings and no long line is\n",
-    "   recorded across any year. Do Manufahi fishers use set lines at all? If so,\n",
-    "   what hook counts do they use, and how do enumerators decide whether to record\n",
-    "   a trip as hand line vs long line? Data show only 11.5% of Manufahi hand line\n",
-    "   trips catch demersal or large pelagic species (vs 41-74% for long line\n",
-    "   elsewhere), suggesting genuine hand line behaviour rather than misclassification\n",
-    "   — but field confirmation is needed.\n")
+cat("\n=== PHASE 2 TEAM QUESTIONS (global Q5, Q8 — Q1-Q4, Q6-Q7 are in Script 1) ===\n\n")
+cat("Q5. Does the PESKAS recording protocol have a category for sabiki rigs\n",
+    "   (multi-hook feather jigs used to catch baitfish)? Mackerel scad and\n",
+    "   Sardines/pilchards appear in 48% and 21% of hand line landings, and 30%\n",
+    "   and 24% of long line landings — both are planktivores that cannot take a\n",
+    "   baited hook at these frequencies. Are sabiki rigs recorded as hand line,\n",
+    "   as part of a long line trip entry, or not recorded as a distinct gear type\n",
+    "   at all?\n\n")
+cat("Q8. Could you provide brief operational definitions for each gear type in\n",
+    "   PESKAS? Specifically: hook count or net configuration, whether the gear\n",
+    "   is attended or unattended, typical depth fished, and target species. This\n",
+    "   is needed to assess whether gear labels in the data reflect meaningfully\n",
+    "   distinct fishing methods that can serve as metier boundaries.\n")
 cat("==============================\n")

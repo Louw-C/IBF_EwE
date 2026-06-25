@@ -604,12 +604,12 @@ cat("Saved: Figures/PESKAS_3d_habitat_over_time.png\n")
 # ---- 11. Step 3e: Team question list ----
 # Compiled questions for Lore (Lorenzo Longobardi, PESKAS team).
 # Format per question: What we found → Figure → Question → Why it matters.
-# These complement the Phase 1 questions (Script 1, Section 8) and Phase 2
+# These complement the Phase 1 questions (Script 1, Section 19) and Phase 2
 # questions (Script 2, Section 7).
 
-cat("\n=== PHASE 3 TEAM QUESTIONS ===\n\n")
+cat("\n=== PHASE 3 TEAM QUESTIONS (global Q9-Q13 — Q1-Q8 are in Scripts 1 and 2) ===\n\n")
 
-cat("Q1. What does 'Deep' mean in the PESKAS habitat field?\n",
+cat("Q9. What does 'Deep' mean in the PESKAS habitat field?\n",
     "   WHAT WE FOUND: 'Deep' accounts for the large majority of south coast\n",
     "   landing events across all four municipalities and all gear types. More\n",
     "   importantly, a consistent set of reef-obligate and shallow-water species\n",
@@ -629,7 +629,7 @@ cat("Q1. What does 'Deep' mean in the PESKAS habitat field?\n",
     "   correct EwE functional group habitat assignments. If 'Deep' is a residual\n",
     "   category, it carries no ecological information.\n\n")
 
-cat("Q2. Are 'Deep' and 'Reef' being used interchangeably by enumerators?\n",
+cat("Q10. Are 'Deep' and 'Reef' being used interchangeably by enumerators?\n",
     "   WHAT WE FOUND: The Pearson correlation between the taxon frequency\n",
     "   profiles of 'Deep' and 'Reef' landings is printed above (see console\n",
     "   output: 'Deep vs Reef taxon profile comparison'). A high correlation\n",
@@ -649,71 +649,51 @@ cat("Q2. Are 'Deep' and 'Reef' being used interchangeably by enumerators?\n",
     "   more honest than treating them as separate habitat types in the metier\n",
     "   classification or EwE model.\n\n")
 
-cat("Q3. Is 'Reef' the launch site or the fishing ground?\n",
+cat("Q11. When does habitat record the fishing ground versus the launch or\n",
+    "   departure point?\n",
     "   WHAT WE FOUND: Sardines/pilchards and Mackerel scad appear in 'Reef'\n",
     "   habitat landings. Both are open-water schooling species that do not\n",
-    "   associate with reef structure as a primary habitat.\n",
+    "   associate with reef structure as a primary habitat. Separately, Snapper/\n",
+    "   seaperch, Grouper, and Emperor appear in 'Beach' habitat landings — benthic\n",
+    "   reef fish that normally live at depth, not typical intertidal catch.\n",
     "   FIGURE: PESKAS_3b_habitat_taxon.png\n",
     "   QUESTION: When a landing is recorded as 'Reef' and the catch includes\n",
     "   Sardines or Mackerel scad, did the boat fish over reef structure, or did\n",
-    "   it depart from a reef-adjacent landing site and then fish in open water?\n",
-    "   WHY IT MATTERS: If 'Reef' is a departure zone, small-pelagic catches under\n",
-    "   'Reef' are recording artefacts — the habitat field cannot be used to assign\n",
-    "   those catch groups to EwE reef functional groups.\n\n")
+    "   it depart from a reef-adjacent site and then fish in open water? When a\n",
+    "   'Beach' landing includes Snapper, Grouper, or Emperor, was the catch from\n",
+    "   a shallow inshore zone or from a boat that launched from the beach?\n",
+    "   WHY IT MATTERS: If 'Reef' and 'Beach' record departure points rather than\n",
+    "   fishing grounds, the habitat field cannot be used to assign catch groups\n",
+    "   to EwE functional group habitat assignments.\n\n")
 
-cat("Q4. Are demersal species under 'Beach' caught inshore, or from boats that\n",
-    "   departed from a beach landing site and fished at depth?\n",
-    "   WHAT WE FOUND: Snapper/seaperch, Grouper, and Emperor appear in 'Beach'\n",
-    "   habitat landings. These are benthic reef fish that normally live at depth\n",
-    "   and are not typical beach-seine or intertidal catch.\n",
-    "   FIGURE: PESKAS_3b_habitat_taxon.png\n",
-    "   QUESTION: Does 'Beach' mean (a) the boat fished in a shallow nearshore\n",
-    "   sandy-beach zone, (b) the enumerator recorded the beach as the departure\n",
-    "   point, or (c) a beach seine was used?\n",
-    "   WHY IT MATTERS: Determines whether 'Beach' landings with demersal taxa\n",
-    "   should be assigned to nearshore or offshore EwE functional group habitats.\n\n")
-
-cat("Q5. Why does manual collection (gleaning) appear under 'Deep' habitat?\n",
-    "   WHAT WE FOUND: Manual collection records appear under 'Deep' habitat in\n",
-    "   some south coast municipality × year combinations. Gleaning is an\n",
-    "   intertidal or very shallow-water activity.\n",
-    "   FIGURE: PESKAS_3c_gear_habitat.png\n",
-    "   QUESTION: Are any of these genuine free-diving operations (e.g. for sea\n",
-    "   cucumber at depth), or is 'Deep' used as a default when the enumerator\n",
-    "   is uncertain or the habitat field is completed by a supervisor after the\n",
-    "   fact?\n",
-    "   WHY IT MATTERS: If 'Deep' is a data-entry default rather than a recorded\n",
-    "   observation, its high frequency across all gear types reflects recording\n",
-    "   behaviour, not actual habitat use — which would invalidate habitat-based\n",
-    "   metier splitting entirely.\n\n")
-
-cat("Q6. What explains the abrupt habitat reclassification in Ainaro and the\n",
-    "   disappearance of FAD landings in Viqueque after 2018?\n",
-    "   WHAT WE FOUND (Ainaro): Ainaro landings were recorded as ~99% 'Reef'\n",
-    "   in 2019, partially mixed in 2020 (73% Reef, 24% Beach), then 100% 'Deep'\n",
-    "   from 2021 onwards with no Reef recorded at all. The switch is immediate\n",
-    "   and total — not a gradual shift — and coincides with declining landing\n",
-    "   counts (136 in 2019, 93 in 2021, 23 in 2023, absent from 2024). This\n",
-    "   pattern is consistent with an enumerator change, not a behavioural shift.\n",
-    "   WHAT WE FOUND (Viqueque FAD): 'FAD' accounted for 62.5% of Viqueque\n",
-    "   landings in 2018 (180 out of 288 landings), then dropped to 1.1% in 2019\n",
-    "   and near-zero in all subsequent years. Viqueque 2018 is already anomalous\n",
-    "   in Phase 1 (gear: all hand line, zero long line). FAD-aggregated catch\n",
-    "   inflates pelagic species (tuna, large jacks) relative to all later years.\n",
+cat("Q12. Was there an enumerator change in Ainaro between 2020 and 2021?\n",
+    "   WHAT WE FOUND: Ainaro landings were recorded as ~99% 'Reef' in 2019,\n",
+    "   partially mixed in 2020 (73% Reef, 24% Beach), then 100% 'Deep' from\n",
+    "   2021 onwards with no Reef recorded at all. The switch is immediate and\n",
+    "   total, coinciding with declining landing counts (136 in 2019, 93 in 2021,\n",
+    "   23 in 2023, absent from 2024). This pattern is consistent with an\n",
+    "   enumerator change, not a shift in fishing behaviour.\n",
     "   FIGURE: PESKAS_3d_habitat_over_time.png\n",
-    "   QUESTION (Ainaro): Was there an enumerator change in Ainaro between 2020\n",
-    "   and 2021? If so, do the two enumerators have different interpretations of\n",
-    "   'Reef' vs 'Deep'? The 2019-2020 Reef records and the 2021+ Deep records\n",
-    "   may describe the same fishing grounds recorded with different labels.\n",
-    "   QUESTION (Viqueque FAD): Was a FAD deployed near Viqueque in 2018 and\n",
-    "   then removed or lost? Or did the recording protocol change so that FAD\n",
-    "   landings were reclassified as 'Deep' from 2019 onwards? If the FAD was\n",
-    "   genuinely active in 2018 and not after, the 2018 catch composition for\n",
-    "   Viqueque is not comparable to later years.\n",
+    "   QUESTION: If there was an enumerator change, do the two enumerators apply\n",
+    "   different definitions of 'Reef' vs 'Deep'? The pre-2021 Reef records and\n",
+    "   the post-2021 Deep records may describe the same fishing grounds under\n",
+    "   different labels.\n",
     "   WHY IT MATTERS: If Ainaro's Reef and Deep records describe the same\n",
     "   fishing grounds under different labels, splitting analyses by habitat\n",
-    "   will produce spurious temporal trends. For Viqueque, using 2018 as a\n",
-    "   baseline year for any catch composition or CPUE analysis will over-\n",
-    "   represent pelagic species relative to the non-FAD fishery.\n\n")
+    "   will produce spurious temporal trends.\n\n")
+
+cat("Q13. Was a FAD deployed near Viqueque in 2018 and then removed or lost?\n",
+    "   WHAT WE FOUND: 'FAD' accounted for 62.5% of Viqueque landings in 2018\n",
+    "   (180 out of 288 landings), then dropped to 1.1% in 2019 and near-zero\n",
+    "   in all subsequent years. Viqueque 2018 is already anomalous in Phase 1\n",
+    "   (gear: all hand line, zero long line). FAD-aggregated catch inflates\n",
+    "   pelagic species (tuna, large jacks) relative to all later years.\n",
+    "   FIGURE: PESKAS_3d_habitat_over_time.png\n",
+    "   QUESTION: Was the FAD genuinely active in 2018 and not after, or did\n",
+    "   the recording protocol change so that FAD landings were reclassified as\n",
+    "   'Deep' from 2019 onwards?\n",
+    "   WHY IT MATTERS: If the FAD was active in 2018 only, the 2018 catch\n",
+    "   composition for Viqueque is not comparable to later years and should not\n",
+    "   be used as a baseline for catch composition or CPUE analysis.\n\n")
 
 cat("==============================\n")

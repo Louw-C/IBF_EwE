@@ -751,12 +751,12 @@ cat("Q2. Ainaro is absent from 2024 and has been declining since 2021\n",
 cat("Q3. Covalima shows unexplained swings in landing counts: 2,024 (2021) → 272 (2023)\n",
     "    → 646 (2024). Did the set of monitored landing sites change between these years,\n",
     "    or is this an actual change in the number of landings?\n\n")
-
-cat("--- B. Gear classification ---\n\n")
 cat("Q4. Given the monitoring gaps and ramp-up periods identified above, which years\n",
     "    and municipalities do you consider to have sufficiently consistent and\n",
     "    representative coverage to include in the metier analysis? Are there sampling\n",
     "    periods that should be excluded or treated with caution?\n\n")
+
+cat("--- B. Gear classification ---\n\n")
 cat("Q6. Manufahi records zero long line across all years, yet long line dominates\n",
     "    elsewhere on the south coast. Do Manufahi fishers use set lines at all? If yes,\n",
     "    how do enumerators decide whether to record a trip as hand line vs long line?\n\n")
